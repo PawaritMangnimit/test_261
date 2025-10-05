@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ระบบล็อกอินด้วย Supabase</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: #f5f7fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 350px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+    input {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+      margin: 5px;
+      cursor: pointer;
+      width: 45%;
+    }
+    button:hover {
+      background-color: #2563eb;
+    }
+    #user {
+      display: none;
+    }
+    #user h3 {
+      color: #222;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ระบบล็อกอิน</h1>
+
+    <div id="auth">
+      <input id="email" type="email" placeholder="อีเมล"><br>
+      <input id="password" type="password" placeholder="รหัสผ่าน"><br>
+      <button onclick="signUp()">สมัครสมาชิก</button>
+      <button onclick="signIn()">เข้าสู่ระบบ</button>
+    </div>
+
+    <div id="user">
+      <h3>ยินดีต้อนรับ <span id="user-email"></span></h3>
+      <button onclick="signOut()">ออกจากระบบ</button>
+      <button onclick="fetchUniversityData()">ข้อมูลจาก มหาวิทยาลัย</button>
+      <pre id="api-result" style="text-align:left; background:#f1f1f1; padding:10px; border-radius:8px; margin-top:10px;"></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // 🧩 ใส่ข้อมูลของคุณจาก Supabase
+    const SUPABASE_URL = "https://tvmfrkwdmqfspkvingmd.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2bWZya3dkbXFmc3BrdmluZ21kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2NDA3MjksImV4cCI6MjA3NTIxNjcyOX0.MK9Z_OzR1OlJfaSY3RaPXvMpEXcr66h48q_tPpAOwMc";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // (ถ้ามี) Token จาก API ของมหาวิทยาลัย
+    const UNIVERSITY_API_TOKEN = "TU84cc56c5706c736b0ddccc2bb1b14a14f8ef72ce7d6b4c0c990f0679c2b9a1e90d36d3a961ae16288ef574f57f42f5a0";
+    const UNIVERSITY_API_URL = "https://restapi.tu.ac.th/tuapi/Authkey"; // ใส่ URL จริงที่นี่
+
+    // 🔹 สมัครสมาชิก
+    window.signUp = async function () {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) alert(error.message);
+      else alert("✅ สมัครสำเร็จ! กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ");
+    };
+
+    // 🔹 เข้าสู่ระบบ
+    window.signIn = async function () {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        alert("❌ เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+      } else {
+        document.getElementById("auth").style.display = "none";
+        document.getElementById("user").style.display = "block";
+        document.getElementById("user-email").textContent = data.user.email;
+      }
+    };
+
+    // 🔹 ออกจากระบบ
+    window.signOut = async function () {
+      await supabase.auth.signOut();
+      document.getElementById("auth").style.display = "block";
+      document.getElementById("user").style.display = "none";
+      document.getElementById("api-result").textContent = "";
+    };
+
+    // 🔹 ตัวอย่างเรียก API ของมหาวิทยาลัย
+    window.fetchUniversityData = async function () {
+      try {
+        const res = await fetch(UNIVERSITY_API_URL, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${UNIVERSITY_API_TOKEN}`,
+            "Content-Type": "application/json"
+          }
+        });
+        if (!res.ok) throw new Error("ไม่สามารถเชื่อมต่อ API ได้");
+        const data = await res.json();
+        document.getElementById("api-result").textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById("api-result").textContent = "⚠️ เกิดข้อผิดพลาด: " + err.message;
+      }
+    };
+  </script>
+</body>
+</html>
